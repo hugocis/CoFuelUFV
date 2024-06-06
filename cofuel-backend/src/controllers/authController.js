@@ -2,6 +2,7 @@ const supabase = require('../models/supabaseClient');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const config = require('../config');
+const { addTokenToBlacklist } = require('../tokenBlacklist');
 
 const register = async (req, res) => {
   const { username, password, email } = req.body;
@@ -18,7 +19,7 @@ const register = async (req, res) => {
     console.log('Password hashed');  // Debug message
     
     const { data, error } = await supabase
-      .from('Users')
+      .from('users')
       .insert([{ username, password: hashedPassword, email }]);
     
     console.log('Supabase response data:', data);  // Debug message
@@ -26,7 +27,7 @@ const register = async (req, res) => {
     
     if (error) {
       console.error('Supabase insert error:', error);  // Debug message
-      throw error;
+      return res.status(400).send(error.message || 'Insert error');
     }
 
     console.log('User registered:', data);  // Debug message
@@ -44,7 +45,7 @@ const login = async (req, res) => {
   
   try {
     const { data: user, error } = await supabase
-      .from('Users')
+      .from('users')
       .select('*')
       .eq('email', email)
       .single();
@@ -73,6 +74,10 @@ const login = async (req, res) => {
 };
 
 const logout = (req, res) => {
+  const token = req.headers['x-access-token'];
+  if (token) {
+    addTokenToBlacklist(token); // Añadir el token a la lista negra
+  }
   console.log('Logout endpoint hit');  // Debug message
   res.status(200).send({ auth: false, token: null });
 };
