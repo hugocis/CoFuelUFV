@@ -1,4 +1,5 @@
 const supabase = require('../models/supabaseClient');
+const { createNotification } = require('./notificationController'); // Import createNotification
 
 // Function to add a review for a trip
 const addReview = async (req, res) => {
@@ -14,6 +15,14 @@ const addReview = async (req, res) => {
     if (error) {
       throw error;
     }
+
+    const trip = await supabase
+      .from('trips')
+      .select('user_id')
+      .eq('id', tripId)
+      .single();
+
+    await createNotification(trip.data.user_id, 'trip_review', 'You have a new review on your trip');
 
     console.log('Review added:', data);
     res.status(201).send(data);

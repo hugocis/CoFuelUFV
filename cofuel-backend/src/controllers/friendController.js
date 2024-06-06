@@ -1,4 +1,5 @@
 const supabase = require('../models/supabaseClient');
+const { createNotification } = require('./notificationController'); // Import createNotification
 
 // Function to send a friend request
 const sendFriendRequest = async (req, res) => {
@@ -14,6 +15,8 @@ const sendFriendRequest = async (req, res) => {
     if (error) {
       throw error;
     }
+
+    await createNotification(friendId, 'friend_request', 'You have a new friend request');
 
     console.log('Friend request sent:', data);
     res.status(201).send(data);
@@ -40,6 +43,17 @@ const respondFriendRequest = async (req, res) => {
     if (error) {
       throw error;
     }
+
+    const friendRequest = await supabase
+      .from('friends')
+      .select('user_id, friend_id')
+      .eq('id', id)
+      .single();
+
+    const recipientId = status === 'accepted' ? friendRequest.data.friend_id : friendRequest.data.user_id;
+    const notificationMessage = status === 'accepted' ? 'Your friend request was accepted' : 'Your friend request was rejected';
+
+    await createNotification(recipientId, 'friend_response', notificationMessage);
 
     console.log('Friend request response:', data);
     res.status(200).send(data);

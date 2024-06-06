@@ -1,4 +1,5 @@
 const supabase = require('../models/supabaseClient');
+const { createNotification } = require('./notificationController'); // Import createNotification
 
 // Function to create a new trip
 const createTrip = async (req, res) => {
@@ -14,6 +15,8 @@ const createTrip = async (req, res) => {
     if (error) {
       throw error;
     }
+
+    await createNotification(userId, 'trip_created', 'Your trip has been created successfully');
 
     console.log('Trip created:', data);
     res.status(201).send(data);

@@ -1,4 +1,5 @@
 const supabase = require('../models/supabaseClient');
+const { createNotification } = require('./notificationController'); // Import createNotification
 
 // Function to add a participant to a trip
 const addParticipant = async (req, res) => {
@@ -14,6 +15,14 @@ const addParticipant = async (req, res) => {
     if (error) {
       throw error;
     }
+
+    const trip = await supabase
+      .from('trips')
+      .select('user_id')
+      .eq('id', tripId)
+      .single();
+
+    await createNotification(trip.data.user_id, 'participant_request', 'A new participant has requested to join your trip');
 
     console.log('Participant added:', data);
     res.status(201).send(data);
@@ -40,6 +49,16 @@ const respondToParticipationRequest = async (req, res) => {
     if (error) {
       throw error;
     }
+
+    const participant = await supabase
+      .from('trip_participants')
+      .select('user_id')
+      .eq('id', id)
+      .single();
+
+    const notificationMessage = status === 'accepted' ? 'Your request to join the trip was accepted' : 'Your request to join the trip was rejected';
+
+    await createNotification(participant.data.user_id, 'participant_response', notificationMessage);
 
     console.log('Participation request response:', data);
     res.status(200).send(data);

@@ -48,7 +48,30 @@ const markNotificationAsRead = async (req, res) => {
   }
 };
 
+// Function to create a notification
+const createNotification = async (userId, type, message) => {
+  console.log('createNotification function called');
+  console.log('User ID:', userId, 'Type:', type, 'Message:', message);
+
+  try {
+    const { data, error } = await supabase
+      .from('notifications')
+      .insert([{ user_id: userId, type, message, status: 'unread' }]);
+
+    if (error) {
+      throw error;
+    }
+
+    console.log('Notification created:', data);
+    return data;
+  } catch (error) {
+    console.error('Error creating notification:', error.message);
+    throw error;
+  }
+};
+
 module.exports = {
   getNotifications,
-  markNotificationAsRead
+  markNotificationAsRead,
+  createNotification,
 };

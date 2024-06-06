@@ -1,4 +1,5 @@
 const supabase = require('../models/supabaseClient');
+const { createNotification } = require('./notificationController'); // Import createNotification
 
 // Function to add a new vehicle
 const addVehicle = async (req, res) => {
@@ -14,6 +15,8 @@ const addVehicle = async (req, res) => {
     if (error) {
       throw error;
     }
+
+    await createNotification(userId, 'vehicle_added', 'Your vehicle has been added successfully');
 
     console.log('Vehicle added:', data);
     res.status(201).send(data);
@@ -65,6 +68,14 @@ const updateVehicle = async (req, res) => {
       throw error;
     }
 
+    const vehicle = await supabase
+      .from('vehicles')
+      .select('user_id')
+      .eq('id', id)
+      .single();
+
+    await createNotification(vehicle.data.user_id, 'vehicle_updated', 'Your vehicle has been updated successfully');
+
     console.log('Vehicle updated:', data);
     res.status(200).send(data);
   } catch (error) {
@@ -80,6 +91,12 @@ const deleteVehicle = async (req, res) => {
   console.log('Request params:', req.params);
 
   try {
+    const vehicle = await supabase
+      .from('vehicles')
+      .select('user_id')
+      .eq('id', id)
+      .single();
+
     const { data, error } = await supabase
       .from('vehicles')
       .delete()
@@ -88,6 +105,8 @@ const deleteVehicle = async (req, res) => {
     if (error) {
       throw error;
     }
+
+    await createNotification(vehicle.data.user_id, 'vehicle_deleted', 'Your vehicle has been deleted successfully');
 
     console.log('Vehicle deleted:', data);
     res.status(200).send(data);
