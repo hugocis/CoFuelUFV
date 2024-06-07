@@ -52,29 +52,38 @@ const listVehicles = async (req, res) => {
 
 // Function to update a vehicle
 const updateVehicle = async (req, res) => {
-  const { id } = req.params;
-  const { make, model, year, licensePlate } = req.body;
+  const { userId, licensePlate } = req.params;
+  const { make, model, year } = req.body;
   console.log('updateVehicle endpoint hit');
   console.log('Request params:', req.params);
   console.log('Request body:', req.body);
 
   try {
+    // First, find the vehicle by user ID and license plate
+    const { data: vehicle, error: vehicleError } = await supabase
+      .from('vehicles')
+      .select('user_id')
+      .eq('license_plate', licensePlate)
+      .eq('user_id', userId)
+      .single();
+
+    if (vehicleError || !vehicle) {
+      console.error('Error finding vehicle:', vehicleError ? vehicleError.message : 'Vehicle not found');
+      throw new Error('Vehicle not found');
+    }
+
+    // Update the vehicle
     const { data, error } = await supabase
       .from('vehicles')
-      .update({ make, model, year, license_plate: licensePlate })
-      .eq('id', id);
+      .update({ make, model, year })
+      .eq('license_plate', licensePlate)
+      .eq('user_id', userId);
 
     if (error) {
       throw error;
     }
 
-    const vehicle = await supabase
-      .from('vehicles')
-      .select('user_id')
-      .eq('id', id)
-      .single();
-
-    await createNotification(vehicle.data.user_id, 'vehicle_updated', 'Your vehicle has been updated successfully');
+    await createNotification(vehicle.user_id, 'vehicle_updated', 'Your vehicle has been updated successfully');
 
     console.log('Vehicle updated:', data);
     res.status(200).send(data);
@@ -86,27 +95,31 @@ const updateVehicle = async (req, res) => {
 
 // Function to delete a vehicle
 const deleteVehicle = async (req, res) => {
-  const { id } = req.params;
+  const { licensePlate } = req.params;
   console.log('deleteVehicle endpoint hit');
   console.log('Request params:', req.params);
 
   try {
-    const vehicle = await supabase
+    const { data: vehicle, error: vehicleError } = await supabase
       .from('vehicles')
       .select('user_id')
-      .eq('id', id)
+      .eq('license_plate', licensePlate)
       .single();
+
+    if (vehicleError || !vehicle) {
+      throw new Error('Vehicle not found');
+    }
 
     const { data, error } = await supabase
       .from('vehicles')
       .delete()
-      .eq('id', id);
+      .eq('license_plate', licensePlate);
 
     if (error) {
       throw error;
     }
 
-    await createNotification(vehicle.data.user_id, 'vehicle_deleted', 'Your vehicle has been deleted successfully');
+    await createNotification(vehicle.user_id, 'vehicle_deleted', 'Your vehicle has been deleted successfully');
 
     console.log('Vehicle deleted:', data);
     res.status(200).send(data);
